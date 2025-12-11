@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Age Detector</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        background: linear-gradient(135deg, #1a1a1a, #000);
+        font-family: Arial;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .card {
+        background: rgba(255,255,255,0.05);
+        padding: 25px;
+        width: 360px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        text-align: center;
+        animation: pop 0.8s;
+    }
+    @keyframes pop {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    h1 { margin-bottom: 10px; }
+    input[type="file"] {
+        padding: 10px;
+        margin-top: 10px;
+        width: 100%;
+        background: #fff;
+        border-radius: 8px;
+    }
+    button {
+        margin-top: 15px;
+        padding: 12px;
+        width: 100%;
+        background: #00ff6a;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        cursor: pointer;
+        color: black;
+        font-weight: bold;
+    }
+    #result {
+        margin-top: 20px;
+        font-size: 22px;
+        font-weight: bold;
+    }
+    video {
+        width: 100%;
+        margin-top: 10px;
+        border-radius: 10px;
+        display: none;
+    }
+</style>
+</head>
+
+<body>
+<div class="card">
+    <h1>AI Age Detector</h1>
+
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="detectFromUpload()">Detect Age</button>
+
+    <button onclick="startCamera()">Use Camera</button>
+    <video id="camera" autoplay></video>
+    <button onclick="capture()" id="captureBtn" style="display:none;">Capture Photo</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    async function detectFromUpload() {
+        const file = document.getElementById("imageInput").files[0];
+        if (!file) {
+            alert("Please upload an image");
+            return;
+        }
+        let formData = new FormData();
+        formData.append("image", file);
+
+        document.getElementById("result").innerText = "Detecting...";
+
+        const res = await fetch("https://age-detector-ol7p.onrender.com", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        showResult(data.age);
+    }
+
+    function startCamera() {
+        const video = document.getElementById("camera");
+        video.style.display = "block";
+        document.getElementById("captureBtn").style.display = "block";
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream });
+    }
+
+    function capture() {
+        const video = document.getElementById("camera");
+
+        let canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        let ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0);
+
+        canvas.toBlob(async function(blob) {
+            let formData = new FormData();
+            formData.append("image", blob, "capture.png");
+
+            document.getElementById("result").innerText = "Detecting...";
+
+            const res = await fetch("https://age-detector-ol7p.onrender.com", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await res.json();
+            showResult(data.age);
+        });
+    }
+
+    function showResult(age) {
+        const result = document.getElementById("result");
+        result.innerText = "Estimated Age: " + age;
+
+        if (age >= 18)
+            result.innerText += " ✔ (Adult)";
+        else
+            result.innerText += " ❌ (Underage)";
+    }
+</script>
+
+</body>
+</html>
